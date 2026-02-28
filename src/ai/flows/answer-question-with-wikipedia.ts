@@ -2,20 +2,19 @@
 
 import { z } from 'genkit';
 
-const AnswerQuestionWithWikipediaInputSchema = z.object({
+const InputSchema = z.object({
   question: z.string(),
 });
 
-const AnswerQuestionWithWikipediaOutputSchema = z.object({
+const OutputSchema = z.object({
+  title: z.string(),
   answer: z.string(),
   sources: z.array(z.string()),
+  image: z.string().nullable(),
 });
 
-export type AnswerQuestionWithWikipediaInput =
-  z.infer<typeof AnswerQuestionWithWikipediaInputSchema>;
-
-export type AnswerQuestionWithWikipediaOutput =
-  z.infer<typeof AnswerQuestionWithWikipediaOutputSchema>;
+export type AnswerQuestionWithWikipediaInput = z.infer<typeof InputSchema>;
+export type AnswerQuestionWithWikipediaOutput = z.infer<typeof OutputSchema>;
 
 export async function answerQuestionWithWikipedia(
   input: AnswerQuestionWithWikipediaInput
@@ -23,37 +22,54 @@ export async function answerQuestionWithWikipedia(
   const { question } = input;
 
   try {
-    const url = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts&explaintext=true&titles=${encodeURIComponent(
+    // STEP 1: Search Wikipedia
+    const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&srsearch=${encodeURIComponent(
       question
     )}&origin=*`;
 
-    const res = await fetch(url);
-    const data: any = await res.json();
+    const searchRes = await fetch(searchUrl);
+    const searchData: any = await searchRes.json();
 
-    const pages = data.query?.pages;
-    const page = pages ? Object.values(pages)[0] : null;
-
-    if (!page || !page.extract) {
+    if (!searchData.query?.search?.length) {
       return {
+        title: 'No Results',
         answer: 'No relevant Wikipedia article found.',
         sources: [],
+        image: null,
       };
     }
 
-    const pageTitle = page.title;
+    const bestMatch = searchData.query.search[0].title;
+
+    // STEP 2: Fetch extract + image
+    const extractUrl = `https://en.wikipedia.org/w/api.php?action=query&format=json&prop=extracts|pageimages&explaintext=true&pithumbsize=400&titles=${encodeURIComponent(
+      bestMatch
+    )}&origin=*`;
+
+    const extractRes = await fetch(extractUrl);
+    const extractData: any = await extractRes.json();
+
+    const pages = extractData.query.pages;
+    const page = Object.values(pages)[0] as any;
+
     const pageUrl = `https://en.wikipedia.org/wiki/${encodeURIComponent(
-      pageTitle.replace(/ /g, '_')
+      bestMatch.replace(/ /g, '_')
     )}`;
 
     return {
-      answer: page.extract,
+      title: bestMatch,
+      answer: page.extract?.slice(0, 1200) || 'No extract available.',
       sources: [pageUrl],
+      image: page.thumbnail?.source || null,
     };
   } catch (error) {
     console.error(error);
+
     return {
+      title: 'Error',
       answer: 'Error fetching data from Wikipedia.',
       sources: [],
+      image: null,
     };
   }
 }

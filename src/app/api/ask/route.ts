@@ -3,19 +3,32 @@ import { answerQuestionWithWikipedia } from '../../../ai/flows/answer-question-w
 
 export async function POST(req: Request) {
   try {
-    const { question } = await req.json();
+    const body = await req.json();
 
-    if (!question) {
+    // Validate input existence and type
+    if (!body.question || typeof body.question !== 'string') {
       return NextResponse.json(
-        { error: 'Question is required.' },
+        { error: 'Invalid question input.' },
         { status: 400 }
       );
     }
 
-    const result = await answerQuestionWithWikipedia({ question });
+    const result = await answerQuestionWithWikipedia({
+      question: body.question.trim(),
+    });
+
+    // Validate response contract
+    if (!result || !result.answer) {
+      return NextResponse.json(
+        { error: 'Invalid response from AI layer.' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(result);
   } catch (error) {
+    console.error('API Route Error:', error);
+
     return NextResponse.json(
       { error: 'Internal server error.' },
       { status: 500 }

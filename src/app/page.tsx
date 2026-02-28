@@ -6,6 +6,7 @@ export default function Home() {
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [sources, setSources] = useState<string[]>([]);
+  const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const askQuestion = async () => {
@@ -14,6 +15,7 @@ export default function Home() {
     setLoading(true);
     setAnswer('');
     setSources([]);
+    setImage(null);
 
     const res = await fetch('/api/ask', {
       method: 'POST',
@@ -25,49 +27,62 @@ export default function Home() {
 
     setAnswer(data.answer);
     setSources(data.sources || []);
+    setImage(data.image || null);
     setLoading(false);
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-4 p-6">
-      <h1 className="text-3xl font-bold">WikiAgent 🤖</h1>
+    <div className="min-h-screen bg-white text-black font-serif p-8">
+      <div className="max-w-3xl mx-auto">
 
-      <input
-        type="text"
-        placeholder="Ask a factual question..."
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        className="w-full max-w-md border p-2 rounded"
-      />
+        <h1 className="text-4xl font-bold border-b pb-2 mb-6">
+          WikiAgent
+        </h1>
 
-      <button
-        onClick={askQuestion}
-        className="bg-blue-500 text-white px-4 py-2 rounded"
-      >
-        {loading ? 'Loading...' : 'Ask'}
-      </button>
-
-      {answer && (
-        <div className="max-w-xl mt-6">
-          <p className="mb-2">{answer}</p>
-
-          {sources.length > 0 && (
-            <div>
-              <h2 className="font-semibold">Sources:</h2>
-              {sources.map((url, index) => (
-                <a
-                  key={index}
-                  href={url}
-                  target="_blank"
-                  className="text-blue-600 underline block"
-                >
-                  {url}
-                </a>
-              ))}
-            </div>
-          )}
+        <div className="flex gap-2 mb-6">
+          <input
+            type="text"
+            placeholder="Search Wikipedia..."
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            className="flex-1 border px-3 py-2"
+          />
+          <button
+            onClick={askQuestion}
+            className="bg-gray-200 hover:bg-gray-300 px-4 py-2 border"
+          >
+            {loading ? 'Loading...' : 'Search'}
+          </button>
         </div>
-      )}
-    </main>
+
+        {image && (
+          <img
+            src={image}
+            alt="Wikipedia Thumbnail"
+            className="float-right ml-6 mb-4 w-64 border"
+          />
+        )}
+
+        {answer && (
+          <div className="text-justify leading-7 text-[17px]">
+            {answer}
+          </div>
+        )}
+
+        {sources.length > 0 && (
+          <div className="mt-6 text-sm">
+            <span className="font-semibold">Source: </span>
+            <a
+              href={sources[0]}
+              target="_blank"
+              className="text-blue-600 hover:underline"
+            >
+              {sources[0]}
+            </a>
+          </div>
+        )}
+
+      </div>
+    </div>
   );
 }
