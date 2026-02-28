@@ -1,196 +1,157 @@
-'use client';
+"use client";
 
-import { useState, KeyboardEvent, useEffect } from 'react';
+import React, { useState, KeyboardEvent } from 'react';
+import { Search, Brain, BookOpen, Layers, Zap, ArrowRight, User, Globe, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
-// --- SUB-COMPONENTS ---
-const MetricCard = ({ label, value, color }: { label: string, value: string, color: string }) => (
-  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-    <p className="text-[10px] uppercase font-bold text-gray-400 mb-1 tracking-widest">{label}</p>
-    <p className={`text-xl font-mono ${color}`}>{value}</p>
-  </div>
-);
-
-const DiscoveryCard = ({ title, desc, onSelect }: { title: string, desc: string, onSelect: (t: string) => void }) => (
-  <div 
-    onClick={() => onSelect(title)}
-    className="min-w-[240px] bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:border-blue-300 cursor-pointer transition-all group"
-  >
-    <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center mb-3 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-      🔍
-    </div>
-    <h4 className="font-bold text-gray-800 text-sm">{title}</h4>
-    <p className="text-[11px] text-gray-500 mt-1">{desc}</p>
-  </div>
-);
-
-export default function Home() {
+const WikiAgentLanding = () => {
+  // 1. State Management
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [sources, setSources] = useState<string[]>([]);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [history, setHistory] = useState<string[]>([]);
-  const [metrics, setMetrics] = useState({ latency: '0ms', confidence: '0%', status: 'Offline' });
+  const [activeFeature, setActiveFeature] = useState(1);
   const [steps, setSteps] = useState<string[]>([]);
 
-  const askQuestion = async (queryOverride?: string) => {
-    const activeQuery = queryOverride || question;
-    if (!activeQuery.trim()) return;
+  // 2. Search Logic
+  const askQuestion = async (override?: string) => {
+    const query = (override || question).trim();
+    if (!query) return;
 
     setLoading(true);
     setAnswer('');
-    setSources([]);
-    setImage(null);
-    setSteps([
-      "🔍 Analyzing search intent...",
-      "🌐 Connecting to MediaWiki API...",
-      "🤖 Synthesizing agentic summary..."
-    ]);
+    setSteps(["🔍 Analyzing intent...", "🌐 Fetching Wiki Data...", "🤖 Synthesizing..."]);
 
     try {
-      const startTime = performance.now();
       const res = await fetch('/api/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question: activeQuery.trim() }),
+        body: JSON.stringify({ question: query }),
       });
-
       const data = await res.json();
-      const endTime = performance.now();
 
-      setAnswer(data.answer || "No data found.");
+      setAnswer(data.answer);
       setSources(data.sources || []);
       setImage(data.image || null);
-      
-      // Update Metrics
-      setMetrics({
-        latency: `${Math.round(endTime - startTime)}ms`,
-        confidence: `${Math.floor(Math.random() * (99 - 92) + 92)}%`,
-        status: 'Verified'
-      });
-
-      if (data.answer && !history.includes(activeQuery)) {
-        setHistory(prev => [activeQuery, ...prev].slice(0, 8));
-      }
     } catch (err) {
-      console.error("Agent Error:", err);
+      console.error("Search failed:", err);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') askQuestion();
+  };
+
   return (
-    <div className="flex min-h-screen bg-[#f8f9fa] text-slate-900">
-      
-      {/* --- SIDEBAR --- */}
-      <aside className="w-64 bg-[#0f1115] hidden lg:flex flex-col h-screen sticky top-0 border-r border-gray-800">
-        <div className="p-8">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold tracking-tighter">W</div>
-            <h1 className="text-white font-bold text-lg">WikiAgent</h1>
+    <div className="min-h-screen bg-[#F9FAFB] text-[#111827] font-sans selection:bg-blue-100">
+      {/* Navbar */}
+      <nav className="fixed w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-black rounded flex items-center justify-center text-white font-bold">W</div>
+            <span className="font-bold text-xl tracking-tight">WikiAgent</span>
           </div>
-        </div>
-        <nav className="flex-1 px-4 space-y-8">
-          <div>
-            <p className="text-[10px] text-gray-500 uppercase font-bold mb-4 ml-2 tracking-widest">History</p>
-            <div className="space-y-1">
-              {history.map((term, i) => (
-                <button key={i} onClick={() => {setQuestion(term); askQuestion(term);}} className="w-full text-left px-4 py-2 text-xs text-gray-400 hover:bg-gray-800 hover:text-blue-400 rounded-lg transition-all truncate">
-                  # {term}
-                </button>
-              ))}
-            </div>
-          </div>
-        </nav>
-        <div className="p-6 mt-auto">
-          <div className="bg-gray-800/40 rounded-xl p-4 border border-gray-700/30 text-[10px] text-gray-500 uppercase font-bold text-center tracking-widest">
-            Glitch-O-Meter 2026
-          </div>
-        </div>
-      </aside>
+          <button
+  onClick={() => router.push('/history')}
+  className="text-sm font-semibold bg-black text-white px-5 py-2.5 rounded-lg hover:bg-gray-800 transition shadow-lg"
+>
+  History
+</button>
+          <Link href="/about">
+  <button className="...">About us</button>
+</Link>
 
-      {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 p-6 lg:p-12 overflow-y-auto">
-        <div className="max-w-4xl mx-auto">
+<Link href="/source">
+  <button className="...">View Source</button>
+</Link>
+
+<Link href="https://github.com/yourrepo" target="_blank">
+  <button className="...">GitHub link</button>
+</Link>
           
-          {/* Search Card */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-8 mb-8">
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <span className="w-2 h-6 bg-blue-600 rounded-full" /> Agentic Intelligence
-            </h2>
-            <div className="flex gap-3">
-              <input
-                type="text"
-                placeholder="What topic should the agent research?"
-                className="flex-1 bg-gray-50 border-none rounded-2xl px-6 py-4 focus:ring-2 focus:ring-blue-500 outline-none font-sans text-sm"
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && askQuestion()}
-              />
-              <button 
-                onClick={() => askQuestion()}
-                className="bg-gray-900 hover:bg-black text-white px-10 py-4 rounded-2xl font-bold transition-all shadow-lg active:scale-95 text-sm"
-              >
-                {loading ? '...' : 'Research'}
-              </button>
-            </div>
-          </div>
-
-          {/* Metrics Dashboard */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <MetricCard label="Latency" value={metrics.latency} color="text-blue-600" />
-            <MetricCard label="Confidence" value={metrics.confidence} color="text-emerald-500" />
-            <MetricCard label="Source Status" value={metrics.status} color="text-orange-500" />
-          </div>
-
-          {/* Results Card */}
-          <div className="bg-white rounded-3xl shadow-sm border border-gray-100 min-h-[500px] p-10 relative">
-            {loading ? (
-              <div className="space-y-6 pt-10">
-                <div className="space-y-3 bg-slate-50 p-6 rounded-2xl border border-slate-100">
-                  <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mb-4">Execution Trace</p>
-                  {steps.map((step, i) => (
-                    <div key={i} className="flex items-center gap-3 text-xs text-slate-500 animate-pulse">
-                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full" /> {step}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <div className="animate-in fade-in duration-700">
-                {image && (
-                  <div className="lg:float-right lg:ml-8 mb-6 max-w-[320px] rounded-2xl overflow-hidden shadow-2xl border-4 border-white rotate-1 hover:rotate-0 transition-all">
-                    <img src={image} alt="Research Visual" className="w-full h-auto" />
-                  </div>
-                )}
-                <h3 className="text-3xl font-bold mb-8 text-slate-900 border-b pb-6 border-slate-50 font-sans tracking-tight">
-                  {question ? question : "Agent Standby"}
-                </h3>
-                <article className="text-lg leading-relaxed text-slate-700 text-justify font-serif selection:bg-blue-100">
-                  {answer ? answer : "The WikiAgent is ready to analyze Wikipedia data. Enter a query to begin the agentic synthesis process."}
-                </article>
-                {sources.length > 0 && (
-                  <div className="mt-12 pt-6 border-t border-slate-50 flex items-center gap-3">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Resource:</span>
-                    <a href={sources[0]} target="_blank" className="text-sm text-blue-600 font-semibold hover:underline">View Source Archive</a>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Discovery Slider */}
-          <section className="mt-12 pb-20">
-            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 px-2">Knowledge Discovery</h3>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar pb-4">
-              <DiscoveryCard title="Space Exploration" desc="Latest updates on the Artemis moon mission." onSelect={(t) => {setQuestion(t); askQuestion(t);}} />
-              <DiscoveryCard title="Quantum Computing" desc="How qubits are changing the tech landscape." onSelect={(t) => {setQuestion(t); askQuestion(t);}} />
-              <DiscoveryCard title="Ancient Civilizations" desc="New findings from the Mayan jungle." onSelect={(t) => {setQuestion(t); askQuestion(t);}} />
-            </div>
-          </section>
-
         </div>
-      </main>
+      </nav>
+
+      {/* Hero & Search Section */}
+      <section className="relative pt-32 pb-24 overflow-hidden bg-[#FFFBF0]">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h1 className="text-5xl md:text-6xl font-bold tracking-tighter leading-tight mb-6">
+              Intelligence <span className="text-blue-600 italic font-serif font-normal">figured out for you</span>
+            </h1>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              Connect the world's knowledge with agentic precision. Ask anything, and let the agent synthesize the facts.
+            </p>
+          </div>
+
+          {/* THE SEARCH BOX (THE CORE FIX) */}
+          <div className="max-w-3xl mx-auto bg-white p-2 rounded-2xl shadow-2xl border border-gray-100 flex items-center gap-2 group focus-within:ring-4 focus-within:ring-blue-500/10 transition-all">
+            <Search className="ml-4 text-gray-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="What would you like to research?"
+              className="flex-1 px-2 py-4 outline-none text-lg font-medium"
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              onKeyDown={handleKeyDown}
+            />
+            <button 
+              onClick={() => askQuestion()}
+              disabled={loading}
+              className="bg-black text-white px-8 py-4 rounded-xl font-bold hover:bg-gray-800 transition flex items-center gap-2 disabled:bg-gray-400"
+            >
+              {loading ? <Loader2 className="animate-spin" size={20} /> : "Search"}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Results Display */}
+      <section className="py-12 bg-white min-h-[400px]">
+        <div className="max-w-5xl mx-auto px-6">
+          {loading && (
+            <div className="space-y-4 animate-in fade-in">
+              <div className="bg-blue-50 p-6 rounded-2xl border border-blue-100">
+                <p className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mb-4">Agent Execution Trace</p>
+                {steps.map((step, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm text-blue-500/70 mb-2">
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-pulse" /> {step}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {answer && !loading && (
+            <div className="grid md:grid-cols-3 gap-10 animate-in slide-in-from-bottom-4 duration-700">
+              <div className="md:col-span-2">
+                <h3 className="text-3xl font-bold mb-6 border-b pb-4">{question}</h3>
+                <p className="text-lg leading-relaxed text-gray-700 font-serif text-justify whitespace-pre-wrap">
+                  {answer}
+                </p>
+                {sources.length > 0 && (
+                  <div className="mt-8">
+                    <a href={sources[0]} target="_blank" className="text-blue-600 font-bold hover:underline flex items-center gap-2 bg-blue-50 w-fit px-4 py-2 rounded-lg">
+                      Source Reference <ArrowRight size={16} />
+                    </a>
+                  </div>
+                )}
+              </div>
+              <div className="relative">
+                {image && (
+                  <img src={image} alt="Research" className="w-full h-auto rounded-3xl shadow-2xl border-4 border-white rotate-1" />
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
-}
+};
+
+export default WikiAgentLanding;
