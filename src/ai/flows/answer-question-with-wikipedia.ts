@@ -16,6 +16,21 @@ const OutputSchema = z.object({
 export type AnswerQuestionWithWikipediaInput = z.infer<typeof InputSchema>;
 export type AnswerQuestionWithWikipediaOutput = z.infer<typeof OutputSchema>;
 
+/**
+ * Safe fetch with timeout protection
+ */
+async function safeFetch(url: string, timeout = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    return response;
+  } finally {
+    clearTimeout(id);
+  }
+}
+
 export async function answerQuestionWithWikipedia(
   input: AnswerQuestionWithWikipediaInput
 ): Promise<AnswerQuestionWithWikipediaOutput> {
@@ -27,7 +42,7 @@ export async function answerQuestionWithWikipedia(
       question
     )}&origin=*`;
 
-    const searchRes = await fetch(searchUrl);
+    const searchRes = await safeFetch(searchUrl);
     const searchData: any = await searchRes.json();
 
     if (!searchData.query?.search?.length) {
@@ -46,7 +61,7 @@ export async function answerQuestionWithWikipedia(
       bestMatch
     )}&origin=*`;
 
-    const extractRes = await fetch(extractUrl);
+    const extractRes = await safeFetch(extractUrl);
     const extractData: any = await extractRes.json();
 
     const pages = extractData.query.pages;
@@ -63,7 +78,7 @@ export async function answerQuestionWithWikipedia(
       image: page.thumbnail?.source || null,
     };
   } catch (error) {
-    console.error(error);
+    console.error('Wikipedia API error:', error);
 
     return {
       title: 'Error',
