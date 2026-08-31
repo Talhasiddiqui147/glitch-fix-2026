@@ -1,12 +1,15 @@
 "use client";
 
 import React, { useState, KeyboardEvent } from 'react';
-import { Search, Brain, BookOpen, Layers, Zap, ArrowRight, User, Globe, Loader2 } from 'lucide-react';
+import { Search, ArrowRight, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 const WikiAgentLanding = () => {
   // 1. State Management
+  const router = useRouter();
+  
+  const [error, setError] = useState('');
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [sources, setSources] = useState<string[]>([]);
@@ -21,9 +24,16 @@ const WikiAgentLanding = () => {
     if (!query) return;
 
     setLoading(true);
-    setAnswer('');
-    setSteps(["🔍 Analyzing intent...", "🌐 Fetching Wiki Data...", "🤖 Synthesizing..."]);
-
+      setError('');
+      setAnswer('');
+      setSources([]);
+      setImage(null);
+      setSteps([
+        "🔍 Analyzing your question...",
+        "🌐 Searching Wikipedia...",
+        "🤖 Preparing your answer..."
+      ]);
+    
     try {
       const res = await fetch('/api/ask', {
         method: 'POST',
@@ -32,11 +42,27 @@ const WikiAgentLanding = () => {
       });
       const data = await res.json();
 
-      setAnswer(data.answer);
+if (!res.ok) {
+  throw new Error(data.error || 'Unable to get an answer.');
+}
+
+if (!data.answer) {
+  throw new Error('No answer was returned.');
+}
+
+setAnswer(data.answer);
+
+
       setSources(data.sources || []);
       setImage(data.image || null);
-    } catch (err) {
-      console.error("Search failed:", err);
+   } catch (err) {
+  console.error("Search failed:", err);
+  setError(
+    err instanceof Error
+      ? err.message
+      : 'Something went wrong. Please try again.'
+  );
+
     } finally {
       setLoading(false);
     }
@@ -61,17 +87,29 @@ const WikiAgentLanding = () => {
 >
   History
 </button>
-          <Link href="/about">
-  <button className="...">About us</button>
+    <Link
+  href="/about"
+  className="text-sm font-medium text-gray-600 hover:text-black transition"
+>
+  About
 </Link>
 
-<Link href="/source">
-  <button className="...">View Source</button>
+<Link
+  href="/source"
+  className="text-sm font-medium text-gray-600 hover:text-black transition"
+>
+  Source
 </Link>
 
-<Link href="https://github.com/yourrepo" target="_blank">
-  <button className="...">GitHub link</button>
-</Link>
+<a
+  href="https://github.com/Talhasiddiqui147/glitch-fix-2026"
+  target="_blank"
+  rel="noopener noreferrer"
+  className="text-sm font-medium text-gray-600 hover:text-black transition"
+>
+  GitHub
+</a>
+
           
         </div>
       </nav>
