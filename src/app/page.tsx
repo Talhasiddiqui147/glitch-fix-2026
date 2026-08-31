@@ -15,6 +15,7 @@ const WikiAgentLanding = () => {
   const [sources, setSources] = useState<string[]>([]);
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [activeFeature, setActiveFeature] = useState(1);
   const [steps, setSteps] = useState<string[]>([]);
 
@@ -65,6 +66,21 @@ setAnswer(data.answer);
 
     } finally {
       setLoading(false);
+    }
+  };
+
+    const copyAnswer = async () => {
+    if (!answer) return;
+
+    try {
+      await navigator.clipboard.writeText(answer);
+      setCopied(true);
+
+      setTimeout(() => {
+        setCopied(false);
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy answer:", err);
     }
   };
 
@@ -172,12 +188,24 @@ setAnswer(data.answer);
                   {answer}
                 </p>
                 {sources.length > 0 && (
-                  <div className="mt-8">
-                    <a href={sources[0]} target="_blank" className="text-blue-600 font-bold hover:underline flex items-center gap-2 bg-blue-50 w-fit px-4 py-2 rounded-lg">
-                      Source Reference <ArrowRight size={16} />
-                    </a>
-                  </div>
-                )}
+                <div className="mt-8 flex flex-wrap items-center gap-3">
+                  <a
+                    href={sources[0]}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 font-bold hover:underline flex items-center gap-2 bg-blue-50 px-4 py-2 rounded-lg"
+                  >
+                    Source Reference <ArrowRight size={16} />
+                  </a>
+
+                  <button
+                    onClick={copyAnswer}
+                    className="px-4 py-2 rounded-lg border border-gray-200 font-semibold text-gray-700 hover:bg-gray-50 transition"
+                  >
+                    {copied ? "✓ Copied!" : "Copy Answer"}
+                  </button>
+                </div>
+              )}
               </div>
               <div className="relative">
                 {image && (
