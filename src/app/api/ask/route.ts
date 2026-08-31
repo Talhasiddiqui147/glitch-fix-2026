@@ -23,8 +23,8 @@ export async function POST(req: Request) {
     }
 
     // Get the top hit's title
-    const bestMatchTitle = searchData.query.search[0].title;
-
+    const searchResults = searchData.query.search.slice(0, 3);
+    const bestMatchTitle = searchResults[0].title;
     // 3. Fetch Full Content for the Best Match
     const contentUrl = `https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages&exintro&explaintext&titles=${encodeURIComponent(bestMatchTitle)}&pithumbsize=1000&format=json&origin=*`;
     const contentRes = await fetch(contentUrl);
@@ -37,7 +37,12 @@ export async function POST(req: Request) {
     // 4. Structured Output Contract
     return NextResponse.json({
       answer: page.extract || "Summary unavailable.",
-      sources: [`https://en.wikipedia.org/?curid=${pageId}`],
+      sources: searchResults
+      .filter((result: { pageid?: number }) => result.pageid)
+      .map(
+      (result: { pageid: number }) =>
+      `https://en.wikipedia.org/?curid=${result.pageid}`
+  ),
       image: page.thumbnail?.source || null,
       title: bestMatchTitle
     });
